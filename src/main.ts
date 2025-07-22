@@ -5,21 +5,24 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Configuración de Swagger para FeliTask
+  // Configuración de Swagger para Simon Movilidad
   const config = new DocumentBuilder()
-    .setTitle('FeliInventory API')
+    .setTitle('Simon Movilidad API')
     .setDescription(
-      'API de gestión de inventarios FeliInventory - Sistema de organización de productos',
+      'API de monitoreo IoT para flotas vehiculares - Sistema de gestión de vehículos, conductores, ubicaciones GPS y datos en tiempo real. Incluye ingesta de señales, alertas predictivas y WebSockets.',
     )
     .setVersion('1.0')
     .addTag('auth', 'Autenticación y gestión de usuarios')
+    .addTag('vehicles', 'Gestión de vehículos y datos GPS/combustible')
+    .addTag('drivers', 'Gestión de conductores')
+    .addTag('locations', 'Ingesta y monitoreo de ubicaciones GPS en tiempo real') // Agregado para tus endpoints
     .addBearerAuth(
       {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
         name: 'JWT',
-        description: 'Ingresa tu token JWT',
+        description: 'Ingresa tu token JWT (validado manualmente sin librerías externas)',
         in: 'header',
       },
       'access-token',
@@ -27,19 +30,21 @@ async function bootstrap() {
     .addServer('http://localhost:8080', 'Servidor de desarrollo')
     .build();
 
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('docs', app, document);
 
-  SwaggerModule.setup('docs', app, documentFactory);
-
-  // Habilitar CORS para el desarrollo
-  app.enableCors();
+  // Habilitar CORS con configuración segura (permite orígenes específicos para producción)
+  app.enableCors({
+    origin: ['http://localhost:3000', 'https://tu-frontend-app.com'], // Ajusta a tus orígenes (e.g., frontend React)
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
 
   // Iniciar el servidor
-  await app.listen(process.env.PORT ?? 8080);
-
-  console.log(
-    `La documentación de la API está disponible en: ${await app.getUrl()}/docs`,
-  );
+  const port = process.env.PORT ?? 8080;
+  await app.listen(port);
+  console.log(`Aplicación corriendo en puerto ${port}`);
+  console.log(`Documentación Swagger disponible en: http://localhost:${port}/docs`);
 }
 
 bootstrap();

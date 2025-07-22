@@ -14,6 +14,13 @@ export class UserMongo {
   @Prop()
   password?: string;
 
+  @Prop({
+    type: String,
+    enum: ['admin', 'driver'], // Restringe valores a 'admin' o 'driver'
+    default: 'admin', // Por defecto 'admin' para usuarios de administración
+  })
+  role: 'admin' | 'driver';
+
   @Prop()
   createdAt?: string;
 
