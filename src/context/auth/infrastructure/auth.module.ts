@@ -10,8 +10,19 @@ import { LoginUserUseCase } from '../application/login-user-use-case/login-user.
 import { GetUserController } from './http-api/v1/get-user.ts/get-user.controller';
 import { GetUserUseCase } from '../application/get-user-use-case/get-user.use-case';
 import { CreateUserDriverController } from './http-api/v1/create-user-driver.ts/create-user.controller';
+import {
+  VehicleMongo,
+  VehicleMongoSchema,
+} from '@/context/maps/infrastructure/schema/vehicle.schema';
+import { DriverMongo, DriverMongoSchema } from '@/context/maps/infrastructure/schema/driver.schema';
 @Module({
-  imports: [MongooseModule.forFeature([{ name: UserMongo.name, schema: UserSchema }])],
+  imports: [
+    MongooseModule.forFeature([
+      { name: UserMongo.name, schema: UserSchema },
+      { name: DriverMongo.name, schema: DriverMongoSchema }, // AGREGADO
+      { name: VehicleMongo.name, schema: VehicleMongoSchema }, // AGREGADO
+    ]),
+  ],
   controllers: [
     CreateUserController,
     LoginUserController,

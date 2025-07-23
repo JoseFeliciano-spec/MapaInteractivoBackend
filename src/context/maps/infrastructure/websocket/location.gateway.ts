@@ -1,3 +1,4 @@
+// Archivo: src/context/maps/infrastructure/websocket/location.gateway.ts
 import {
   SubscribeMessage,
   WebSocketGateway,
@@ -9,7 +10,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { LocationUseCases } from '@/context/maps/application/crud-location-use-case/crud-location.use-case';
-import * as crypto from 'crypto'; // Nativo de Node.js, sin librerías externas
+import * as crypto from 'crypto';
 
 @WebSocketGateway({ cors: true, namespace: 'locations' })
 @Injectable()
@@ -22,7 +23,7 @@ export class LocationGateway implements OnGatewayInit, OnGatewayConnection, OnGa
   afterInit(server: Server) {
     this.logger.log('WebSocket Gateway initialized for locations');
     this.broadcastAllLocations();
-    setInterval(() => this.broadcastAllLocations(), 10000); // Broadcast periódico
+    setInterval(() => this.broadcastAllLocations(), 10000);
   }
 
   async handleConnection(client: Socket) {
@@ -31,15 +32,16 @@ export class LocationGateway implements OnGatewayInit, OnGatewayConnection, OnGa
       const token = client.handshake.auth.token;
       if (!token) throw new Error('Token requerido');
 
-      const payload = this.verifyJwtManual(token); // Validación manual
+      const payload = this.verifyJwtManual(token);
       client.data.user = payload;
 
-      // Reconexión automática (configurada en cliente, pero log aquí)
+      this.logger.log(`Usuario autenticado: ${payload.sub} - Rol: ${payload.role || 'N/A'}`);
+
       client.on('reconnect_attempt', () =>
         this.logger.log(`Reconexión intentada por ${client.id}`),
       );
 
-      this.broadcastAllLocations(); // Inicial
+      this.broadcastAllLocations();
     } catch (error) {
       this.logger.error(`Conexión fallida: ${error.message}`);
       client.disconnect();
@@ -56,101 +58,164 @@ export class LocationGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     client: Socket,
     data: { vehicleId: string; latitude: number; longitude: number },
   ) {
-    if (client.data.user.role !== 'driver') {
-      client.emit('error', { message: 'Solo drivers pueden enviar ubicaciones' });
-      return;
-    }
-
     try {
-      const newLocation = await this.locationService.createLocation({
-        vehicleId: data.vehicleId,
-        latitude: data.latitude,
-        longitude: data.longitude,
-      });
+      this.logger.log(`Recibida ubicación de ${client.id}: ${JSON.stringify(data)}`);
+      this.logger.log(`Usuario: ${client.data?.user?.sub} - Rol: ${client.data?.user?.role}`);
 
-      // Cheque predictivo simple (ej: alerta si timestamp indica desactualización >1h)
-      const now = new Date();
-      const isOutdated = now.getTime() - new Date(newLocation.data.timestamp).getTime() > 3600000; // 1 hora
-      if (isOutdated) {
-        this.server.emit('alert', {
-          message: `Alerta: Ubicación desactualizada para vehículo ${data.vehicleId}`,
-        });
+      if (client.data.user.role !== 'driver') {
+        client.emit('error', { message: 'Solo drivers pueden enviar ubicaciones' });
+        return;
       }
 
-      // Broadcast con enmascarado de ID para no-admins
-      const broadcastData = {
-        ...newLocation.data,
-        id: this.maskId(newLocation.data.id, client.data.user.role),
+      // Validar datos
+      if (!data.vehicleId || data.latitude == null || data.longitude == null) {
+        throw new Error('vehicleId, latitude y longitude son requeridos');
+      }
+
+      this.logger.log(`Intentando crear ubicación para vehículo: ${data.vehicleId}`);
+
+      console.log({
+        vehicleId: data.vehicleId,
+        latitude: Number(data.latitude),
+        longitude: Number(data.longitude),
+        timestamp: new Date(),
+      });
+
+      // DATOS LIMPIOS PARA EL REPOSITORIO
+      const locationData = {
+        vehicleId: data.vehicleId,
+        latitude: Number(data.latitude),
+        longitude: Number(data.longitude),
+        timestamp: new Date(),
       };
-      this.server.emit('newLocation', broadcastData);
-      this.logger.log(`Nueva ubicación enviada por driver ${client.data.user.id}`);
+
+      const newLocation = await this.locationService.createLocation(locationData);
+
+      this.logger.log(`Ubicación creada exitosamente: ${JSON.stringify(newLocation)}`);
+
+      // Broadcast
+      this.server.emit('newLocation', newLocation.data);
+
+      // Confirmar al cliente
+      client.emit('locationSent', {
+        message: 'Ubicación enviada exitosamente',
+        data: newLocation.data,
+      });
     } catch (error) {
-      client.emit('error', { message: 'Error al procesar la ubicación' });
-      this.logger.error(`Error en sendLocation: ${error.message}`);
+      this.logger.error(`Error detallado en sendLocation: ${error.message}`);
+      this.logger.error(`Stack trace: ${error.stack}`);
+      this.logger.error(`Datos recibidos: ${JSON.stringify(data)}`);
+
+      client.emit('error', {
+        message: 'Error al procesar la ubicación',
+        details: error.message,
+      });
     }
   }
 
   @SubscribeMessage('requestLocations')
   async handleRequestLocations(client: Socket) {
-    if (client.data.user.role !== 'user') {
-      client.emit('error', { message: 'Acceso denegado' });
+    // Cambiar validación de 'user' a 'admin' para ser consistente
+    if (client.data.user.role !== 'admin') {
+      client.emit('error', { message: 'Solo administradores pueden solicitar ubicaciones' });
       return;
     }
-    await this.broadcastAllLocations(client); // Broadcast selectivo al cliente
+    await this.broadcastAllLocations(client);
   }
 
+  // Archivo: src/context/maps/infrastructure/websocket/location.gateway.ts
   async broadcastAllLocations(client?: Socket) {
     try {
-      const locations = await this.locationService.getAllLocations();
-      const role = client ? client.data.user.role : 'user'; // Default a 'user' para broadcasts generales
+      if (!client) {
+        // Si no hay cliente específico, no hacer broadcast general
+        return;
+      }
 
-      // Enmascarar IDs basado en rol
+      // Verificar rol del usuario
+      const userRole = client.data.user.role;
+      const userId = client.data.user.sub;
+
+      this.logger.log(`Solicitando ubicaciones para usuario: ${userId} con rol: ${userRole}`);
+
+      let locations;
+
+      if (userRole === 'admin') {
+        // ADMIN: Obtener ubicaciones de todos sus drivers usando su ID como idUserAdmin
+        locations = await this.locationService.getAllLocations(userId); // userId es el idUserAdmin
+        this.logger.log(
+          `Admin ${userId}: obtenidas ${locations.data.length} ubicaciones de sus drivers`,
+        );
+      } else {
+        // Rol no autorizado
+        client.emit('error', {
+          message: 'Rol no autorizado para solicitar ubicaciones',
+          allowedRoles: ['admin'],
+        });
+        return;
+      }
+
+      // Aplicar enmascaramiento de IDs según privacidad (requisito de la prueba técnica)
       const maskedLocations = locations.data.map((loc) => ({
         ...loc,
-        id: this.maskId(loc.id, role),
+        id: this.maskId(loc.id, userRole),
+        vehicleId: this.maskId(loc.vehicleId, userRole), // También enmascarar vehicleId
       }));
 
-      if (client) {
-        client.emit('allLocations', maskedLocations); // Selectivo
-      } else {
-        this.server.emit('allLocations', maskedLocations); // A todos
-      }
-      this.logger.log('Broadcasted all locations');
+      // Enviar solo al cliente que solicitó (sesión específica)
+      client.emit('allLocations', maskedLocations);
+
+      this.logger.log(
+        `Enviadas ${maskedLocations.length} ubicaciones filtradas para ${userRole}: ${userId}`,
+      );
     } catch (error) {
-      this.logger.error(`Error broadcasting: ${error.message}`);
+      this.logger.error(`Error broadcasting locations: ${error.message}`);
+
+      // Enviar error específico al cliente
+      if (client) {
+        client.emit('error', {
+          message: 'Error al obtener ubicaciones',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        });
+      }
     }
   }
 
-  // Implementación manual de verificación JWT (HS256, sin librerías externas)
   private verifyJwtManual(token: string): any {
-    const [header, payload, signature] = token.split('.');
-    const secret = process.env.JWT_SECRET;
+    try {
+      const [header, payload, signature] = token.split('.');
+      const secret = process.env.JWT_SECRET;
 
-    const expectedSignature = crypto
-      .createHmac('sha256', secret)
-      .update(`${header}.${payload}`)
-      .digest('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, ''); // URL-safe
+      if (!secret) {
+        throw new Error('JWT_SECRET no configurado');
+      }
 
-    if (signature !== expectedSignature) {
-      throw new Error('Firma inválida');
+      const expectedSignature = crypto
+        .createHmac('sha256', secret)
+        .update(`${header}.${payload}`)
+        .digest('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+
+      if (signature !== expectedSignature) {
+        throw new Error('Firma inválida');
+      }
+
+      const decodedPayload = JSON.parse(Buffer.from(payload, 'base64').toString('utf-8'));
+
+      if (decodedPayload.exp && Date.now() / 1000 > decodedPayload.exp) {
+        throw new Error('Token expirado');
+      }
+
+      return decodedPayload;
+    } catch (error) {
+      this.logger.error(`Error en verificación JWT: ${error.message}`);
+      throw error;
     }
-
-    // Decodificar payload (base64 a JSON)
-    const decodedPayload = JSON.parse(Buffer.from(payload, 'base64').toString('utf-8'));
-    // Validar expiración manual (exp en segundos desde epoch)
-    if (decodedPayload.exp && Date.now() / 1000 > decodedPayload.exp) {
-      throw new Error('Token expirado');
-    }
-
-    return decodedPayload;
   }
 
-  // Enmascarar ID para privacidad (ej: LOC-****-XC54 para no-admins)
   private maskId(id: string, role: string): string {
-    if (role === 'admin') return id; // Admins ven ID completo
-    return `LOC-${id.substring(0, 4)}-****-${id.substring(id.length - 4)}`; // Enmascarado
+    if (role === 'admin') return id;
+    return `LOC-${id.substring(0, 4)}-****-${id.substring(id.length - 4)}`;
   }
 }

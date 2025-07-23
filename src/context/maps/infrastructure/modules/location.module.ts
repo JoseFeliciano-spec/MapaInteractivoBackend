@@ -9,25 +9,30 @@ import { LocationUseCases } from '@/context/maps/application/crud-location-use-c
 import { InMemoryCrudLocationRepository } from '@/context/maps/infrastructure/repositories/location/in-memory-crud-location-repository';
 import { LocationRepository } from '@/context/maps/domain/location/location.repository';
 import { LocationGateway } from '../websocket/location.gateway';
+import { DriverMongo, DriverMongoSchema } from '@/context/maps/infrastructure/schema/driver.schema'; // Ajusta el path según tu estructura
 import {
   NotificationMongo,
   NotificationMongoSchema,
-} from '@/context/maps/infrastructure/schema/notifier.schema'; // Asumiendo esquema para notificaciones, ajusta si es necesario
-
+} from '@/context/maps/infrastructure/schema/notifier.schema'; // Asumiendo esquema para notificaciones, ajusta según tu estructura
+import { UserSchema, UserMongo } from '@/context/auth/infrastructure/schema/user.schema';
+import { VehicleMongo, VehicleMongoSchema } from '../schema/vehicle.schema';
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: LocationMongo.name, schema: LocationMongoSchema }]),
+    MongooseModule.forFeature([{ name: UserMongo.name, schema: UserSchema }]),
+    MongooseModule.forFeature([{ name: DriverMongo.name, schema: DriverMongoSchema }]),
     MongooseModule.forFeature([{ name: NotificationMongo.name, schema: NotificationMongoSchema }]),
+    MongooseModule.forFeature([{ name: VehicleMongo.name, schema: VehicleMongoSchema }]),
+    MongooseModule.forFeature([{ name: LocationMongo.name, schema: LocationMongoSchema }]),
   ],
   controllers: [LocationController],
   providers: [
     LocationUseCases,
     InMemoryCrudLocationRepository,
-    LocationGateway, // Aquí se integra el WebSocket Gateway como provider para inyección de dependencias
     {
       provide: LocationRepository,
       useExisting: InMemoryCrudLocationRepository,
     },
+    LocationGateway, // Aquí se integra el WebSocket Gateway como provider para inyección de dependencias
   ],
   exports: [LocationUseCases, LocationGateway], // Exporta el gateway si necesitas usarlo en otros módulos (ej: para inyección cross-module)
 })

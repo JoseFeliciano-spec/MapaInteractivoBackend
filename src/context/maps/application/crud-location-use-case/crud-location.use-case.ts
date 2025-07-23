@@ -33,12 +33,12 @@ export class LocationUseCases {
     };
   }
 
-  async getAllLocations(): Promise<{
+  async getAllLocations(id?: string): Promise<{
     data: PrimitiveLocation[];
     message: string;
     statusCode: number;
   }> {
-    const locations = await this.locationRepository.getAll();
+    const locations = await this.locationRepository.getAll(id);
 
     return {
       data: locations,

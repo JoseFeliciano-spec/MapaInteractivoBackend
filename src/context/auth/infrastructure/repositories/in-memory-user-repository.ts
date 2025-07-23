@@ -3,6 +3,8 @@ import { UserRepository } from '@/context/auth/domain/user.repository';
 import { Model } from 'mongoose';
 import { User } from '@/context/auth/domain/user.entity';
 import { UserMongo } from '@/context/auth/infrastructure/schema/user.schema';
+import { DriverMongo } from '@/context/maps/infrastructure/schema/driver.schema'; // AGREGADO
+import { VehicleMongo } from '@/context/maps/infrastructure/schema/vehicle.schema'; // AGREGADO
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
@@ -10,6 +12,8 @@ import { JwtService } from '@nestjs/jwt';
 @Injectable()
 export class InMemoryUserRepository extends UserRepository {
   @InjectModel(UserMongo.name) private userModel: Model<UserMongo>;
+  @InjectModel(DriverMongo.name) private driverModel: Model<DriverMongo>; // AGREGADO
+  @InjectModel(VehicleMongo.name) private vehicleModel: Model<VehicleMongo>; // AGREGADO
 
   constructor(private jwtService: JwtService) {
     super();
@@ -19,9 +23,14 @@ export class InMemoryUserRepository extends UserRepository {
     try {
       // Find the user using the decoded sub (user id)
       const user: any = await this.userModel.findOne({ _id: token });
-      console.log(user);
       if (!user) {
         throw new UnauthorizedException('Usuario no encontrado');
+      }
+
+      // NUEVO: Si es driver, obtener vehicleId
+      let vehicleId = null;
+      if (user.role === 'driver') {
+        vehicleId = await this.getVehicleIdForDriver(user._id.toString());
       }
 
       return {
@@ -32,6 +41,7 @@ export class InMemoryUserRepository extends UserRepository {
           name: user.name,
           role: user.role,
           email: user.email,
+          vehicleId: vehicleId, // AGREGADO
           createdAt: user.createdAt,
         },
       };
@@ -49,7 +59,6 @@ export class InMemoryUserRepository extends UserRepository {
       throw new Error('El usuario ya existe');
     }
 
-    console.log(userUsing);
     const hashedPassword = await bcrypt.hash(userUsing.password, 10);
 
     const newUser = new this.userModel({
@@ -60,12 +69,12 @@ export class InMemoryUserRepository extends UserRepository {
     });
 
     const savedUser = await newUser.save();
-    console.log(savedUser);
+
     const payload = { sub: savedUser._id, email: savedUser.email };
     const token = await this.jwtService.signAsync(payload);
 
     return {
-      message: 'Se ha creado el usuario correctamentsse',
+      message: 'Se ha creado el usuario correctamente',
       statusCode: HttpStatus.ACCEPTED,
       data: {
         access_token: token,
@@ -92,7 +101,13 @@ export class InMemoryUserRepository extends UserRepository {
 
     await this.userModel.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } });
 
-    const payload = { sub: user._id, email: user.email };
+    // NUEVO: Obtener vehicleId para drivers
+    let vehicleId = null;
+    if (user.role === 'driver') {
+      vehicleId = await this.getVehicleIdForDriver(user._id.toString());
+    }
+
+    const payload = { sub: user._id, email: user.email, role: user.role };
 
     return {
       message: 'Se ha iniciado sesión correctamente',
@@ -103,7 +118,37 @@ export class InMemoryUserRepository extends UserRepository {
         role: user.role,
         name: user.name,
         email: user.email,
+        vehicleId: vehicleId, // AGREGADO - Campo principal
       },
     };
+  }
+
+  // NUEVO MÉTODO: Obtener vehicleId usando _id del Driver (CORREGIDO)
+  private async getVehicleIdForDriver(userId: string): Promise<string | null> {
+    try {
+      // 1. Buscar driver por idUser (que es el _id del user)
+      const driver = await this.driverModel.findOne({ idUser: userId });
+
+      if (!driver) {
+        console.log(`No se encontró driver para userId: ${userId}`);
+        return null;
+      }
+
+      // 2. CORREGIDO: Buscar vehicle usando _id del driver (NO idUser)
+      const vehicle = await this.vehicleModel.findOne({
+        assignedDriver: driver._id.toString(), // ✅ Usar _id del Driver
+      });
+
+      if (!vehicle) {
+        console.log(`No se encontró vehículo para driver._id: ${driver._id}`);
+        return null;
+      }
+
+      console.log(`Vehículo encontrado: ${vehicle._id} para driver: ${driver._id}`);
+      return vehicle._id.toString();
+    } catch (error) {
+      console.error('Error obteniendo vehicleId para driver:', error);
+      return null;
+    }
   }
 }

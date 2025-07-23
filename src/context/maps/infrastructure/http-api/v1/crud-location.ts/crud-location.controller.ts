@@ -37,7 +37,7 @@ export class LocationController {
   }
 
   @Get()
-  async findAll(@Request() req): Promise<any> {
+  async findAll(@Request() req, @Param('id') id: string): Promise<any> {
     try {
       return await this.locationService.getAllLocations();
     } catch (error) {
