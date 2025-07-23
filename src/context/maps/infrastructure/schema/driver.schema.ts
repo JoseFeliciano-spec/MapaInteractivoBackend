@@ -4,7 +4,10 @@ import { Document } from 'mongoose';
 @Schema()
 export class DriverMongo extends Document {
   @Prop({ required: true })
-  name: string;
+  idUser: string;
+
+  @Prop({ required: true })
+  idUserAdmin: string;
 
   @Prop({ required: true, unique: true })
   license: string;

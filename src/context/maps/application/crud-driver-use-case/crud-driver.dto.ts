@@ -1,6 +1,6 @@
 export class CrudDriverDto {
-  id?: string;
-  name?: string;
+  idUser?: string;
+  idUserAdmin?: any;
   license?: string;
   assignedVehicle?: string;
 }

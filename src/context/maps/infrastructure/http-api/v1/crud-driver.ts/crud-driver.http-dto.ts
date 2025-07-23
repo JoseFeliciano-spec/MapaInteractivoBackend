@@ -4,13 +4,13 @@ import { IsMongoId } from 'class-validator';
 
 export class CreateDriverDto {
   @ApiProperty({
-    description: 'El nombre del conductor',
-    example: 'Juan Pérez',
+    description: 'El ID del conductor que se desea actualizar (idUser)',
+    example: '605c72e1582d32001520b451',
     required: true,
   })
-  @IsNotEmpty({ message: 'El nombre es obligatorio' })
-  @IsString({ message: 'El nombre debe ser una cadena de texto' })
-  name!: string;
+  @IsNotEmpty({ message: 'El ID del conductor es obligatorio' })
+  @IsMongoId({ message: 'El ID debe ser un BSON válido' })
+  idUser!: string;
 
   @ApiProperty({
     description: 'La licencia del conductor (formato alfanumérico con guiones)',
@@ -26,7 +26,7 @@ export class CreateDriverDto {
 
   @ApiProperty({
     description: 'ID del vehículo asignado al conductor (opcional)',
-    example: '605c72e1582d32001520b451',
+    example: '605c72e1582d32001520b452',
     required: false,
   })
   @IsOptional()
@@ -36,38 +36,30 @@ export class CreateDriverDto {
 
 export class UpdateDriverDto {
   @ApiProperty({
-    description: 'El ID del conductor que se desea actualizar',
+    description: 'El ID del conductor que se desea actualizar (idUser)',
     example: '605c72e1582d32001520b451',
     required: true,
   })
   @IsNotEmpty({ message: 'El ID del conductor es obligatorio' })
   @IsMongoId({ message: 'El ID debe ser un BSON válido' })
-  id!: string;
+  idUser!: string;
 
   @ApiProperty({
-    description: 'El nombre del conductor',
-    example: 'Juan Pérez',
-    required: true,
-  })
-  @IsNotEmpty({ message: 'El nombre es obligatorio' })
-  @IsString({ message: 'El nombre debe ser una cadena de texto' })
-  name!: string;
-
-  @ApiProperty({
-    description: 'La licencia del conductor (formato alfanumérico con guiones)',
+    description:
+      'La licencia del conductor (formato alfanumérico con guiones, opcional para actualización)',
     example: 'ABC-123',
-    required: true,
+    required: false,
   })
-  @IsNotEmpty({ message: 'La licencia es obligatoria' })
+  @IsOptional()
   @IsString({ message: 'La licencia debe ser una cadena de texto' })
   @Matches(/^[A-Z0-9-]+$/, {
     message: 'La licencia debe ser alfanumérica con guiones (ej: ABC-123)',
   })
-  license!: string;
+  license?: string;
 
   @ApiProperty({
     description: 'ID del vehículo asignado al conductor (opcional)',
-    example: '605c72e1582d32001520b451',
+    example: '605c72e1582d32001520b452',
     required: false,
   })
   @IsOptional()
@@ -77,11 +69,11 @@ export class UpdateDriverDto {
 
 export class DeleteDriverDto {
   @ApiProperty({
-    description: 'El ID del conductor que se desea eliminar',
+    description: 'El ID del conductor que se desea eliminar (idUser)',
     example: '605c72e1582d32001520b451',
     required: true,
   })
   @IsNotEmpty({ message: 'El ID del conductor es obligatorio' })
   @IsMongoId({ message: 'El ID debe ser un BSON válido' })
-  id!: string;
+  idUser!: string;
 }

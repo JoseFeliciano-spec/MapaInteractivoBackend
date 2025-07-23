@@ -18,9 +18,8 @@ export class InMemoryUserRepository extends UserRepository {
   async getUserFromToken(token: string): Promise<any> {
     try {
       // Find the user using the decoded sub (user id)
-      console.log(token);
-      const user = await this.userModel.findOne({ _id: token });
-
+      const user: any = await this.userModel.findOne({ _id: token });
+      console.log(user);
       if (!user) {
         throw new UnauthorizedException('Usuario no encontrado');
       }
@@ -31,6 +30,7 @@ export class InMemoryUserRepository extends UserRepository {
         data: {
           id: user._id.toString(),
           name: user.name,
+          role: user.role,
           email: user.email,
           createdAt: user.createdAt,
         },
@@ -49,6 +49,7 @@ export class InMemoryUserRepository extends UserRepository {
       throw new Error('El usuario ya existe');
     }
 
+    console.log(userUsing);
     const hashedPassword = await bcrypt.hash(userUsing.password, 10);
 
     const newUser = new this.userModel({
@@ -59,7 +60,7 @@ export class InMemoryUserRepository extends UserRepository {
     });
 
     const savedUser = await newUser.save();
-
+    console.log(savedUser);
     const payload = { sub: savedUser._id, email: savedUser.email };
     const token = await this.jwtService.signAsync(payload);
 
@@ -68,6 +69,7 @@ export class InMemoryUserRepository extends UserRepository {
       statusCode: HttpStatus.ACCEPTED,
       data: {
         access_token: token,
+        role: savedUser.role,
         id: savedUser._id.toString(),
         name: savedUser.name,
         email: savedUser.email,
@@ -75,13 +77,7 @@ export class InMemoryUserRepository extends UserRepository {
     };
   }
 
-  async login({
-    email,
-    password,
-  }: {
-    email: string;
-    password: string;
-  }): Promise<any> {
+  async login({ email, password }: { email: string; password: string }): Promise<any> {
     const user = await this.userModel.findOne({ email });
 
     if (!user) {
@@ -94,10 +90,7 @@ export class InMemoryUserRepository extends UserRepository {
       throw new UnauthorizedException('Contraseña incorrecta');
     }
 
-    await this.userModel.updateOne(
-      { _id: user._id },
-      { $set: { lastLogin: new Date() } },
-    );
+    await this.userModel.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } });
 
     const payload = { sub: user._id, email: user.email };
 
@@ -107,6 +100,7 @@ export class InMemoryUserRepository extends UserRepository {
       data: {
         access_token: await this.jwtService.signAsync(payload),
         id: user._id.toString(),
+        role: user.role,
         name: user.name,
         email: user.email,
       },

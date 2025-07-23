@@ -2,7 +2,7 @@ export interface PrimitiveUser {
   name?: string;
   email?: string;
   password?: string;
-  type?: string;
+  role?: string;
 }
 
 export class User {
@@ -12,13 +12,13 @@ export class User {
     name: string;
     email: string;
     password: string;
-    type?: string;
+    role?: string;
   }): User {
     return new User({
       name: createUser.name,
       email: createUser.email,
       password: createUser.password,
-      type: createUser?.type,
+      role: createUser?.role,
     });
   }
 
@@ -33,7 +33,7 @@ export class User {
     return {
       name: this.attributes.name,
       email: this.attributes.email,
-      type: this.attributes.type,
+      role: this.attributes.role,
       password: this.attributes.password,
     };
   }

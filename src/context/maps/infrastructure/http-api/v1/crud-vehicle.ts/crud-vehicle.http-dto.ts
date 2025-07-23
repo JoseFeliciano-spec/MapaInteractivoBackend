@@ -9,7 +9,7 @@ export class CreateVehicleDto {
   })
   @IsNotEmpty({ message: 'El modelo es obligatorio' })
   @IsString({ message: 'El modelo debe ser una cadena de texto' })
-  model!: string;
+  modelCar!: string;
 
   @ApiProperty({
     description: 'Placa del vehículo (debe ser única)',

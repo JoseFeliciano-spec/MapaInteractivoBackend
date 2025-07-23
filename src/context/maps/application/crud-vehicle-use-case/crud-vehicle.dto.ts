@@ -1,6 +1,6 @@
 export class CrudVehicleDto {
   id?: string;
-  model?: string;
+  modelCar?: string;
   plate?: string;
   fuelLevel?: number;
   assignedDriver?: string;

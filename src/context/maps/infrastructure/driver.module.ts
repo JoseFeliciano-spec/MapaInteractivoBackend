@@ -9,11 +9,15 @@ import {
   NotificationMongo,
   NotificationMongoSchema,
 } from '@/context/maps/infrastructure/schema/notifier.schema'; // Asumiendo esquema para notificaciones, ajusta según tu estructura
+import { UserSchema, UserMongo } from '@/context/auth/infrastructure/schema/user.schema';
+import { VehicleMongo, VehicleMongoSchema } from './schema/vehicle.schema';
 
 @Module({
   imports: [
+    MongooseModule.forFeature([{ name: UserMongo.name, schema: UserSchema }]),
     MongooseModule.forFeature([{ name: DriverMongo.name, schema: DriverMongoSchema }]),
     MongooseModule.forFeature([{ name: NotificationMongo.name, schema: NotificationMongoSchema }]),
+    MongooseModule.forFeature([{ name: VehicleMongo.name, schema: VehicleMongoSchema }]),
   ],
   controllers: [DriverController],
   providers: [

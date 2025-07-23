@@ -1,6 +1,6 @@
 export interface PrimitiveDriver {
-  id?: string;
-  name?: string;
+  idUser?: string;
+  idUserAdmin?: string;
   license?: string;
   assignedVehicle?: string;
 }
@@ -8,29 +8,35 @@ export interface PrimitiveDriver {
 export class Driver {
   constructor(private attributes: PrimitiveDriver) {}
 
-  static create(createDriver: { name: string; license: string; assignedVehicle?: string }): Driver {
+  static create(createDriver: {
+    idUser: string;
+    license: string;
+    idUserAdmin?: string;
+    assignedVehicle?: string;
+  }): Driver {
     return new Driver({
-      name: createDriver.name,
+      idUserAdmin: createDriver.idUserAdmin,
+      idUser: createDriver.idUser,
       license: createDriver.license,
       assignedVehicle: createDriver.assignedVehicle,
     });
   }
 
   static update(updateDriver: {
-    id?: string;
-    name?: string;
+    idUser?: string;
     license?: string;
+    idUserAdmin?: string;
     assignedVehicle?: string;
   }): Driver {
     return new Driver({
-      id: updateDriver.id,
-      name: updateDriver.name,
+      idUser: updateDriver.idUser,
+      idUserAdmin: updateDriver?.idUserAdmin,
       license: updateDriver.license,
       assignedVehicle: updateDriver.assignedVehicle,
     });
   }
 
-  static delete(id: string): any {
+  static delete(idUser: string): any {
     return new Driver({});
   }
 
@@ -38,14 +44,14 @@ export class Driver {
     return [];
   }
 
-  static async getDriverById(id: string): Promise<any> {
+  static async getDriverByidUser(idUser: string): Promise<any> {
     return null;
   }
 
   toPrimitives(): PrimitiveDriver {
     return {
-      id: this.attributes.id,
-      name: this.attributes.name,
+      idUser: this.attributes.idUser,
+      idUserAdmin: this.attributes.idUserAdmin,
       license: this.attributes.license,
       assignedVehicle: this.attributes.assignedVehicle,
     };

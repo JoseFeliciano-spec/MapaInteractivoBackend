@@ -1,31 +1,33 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { Document, HydratedDocument, Schema as MongooseSchema } from 'mongoose';
 
 export type UserDocument = HydratedDocument<UserMongo>;
 
-@Schema({ collection: 'users' })
-export class UserMongo {
-  @Prop()
-  name?: string;
+@Schema({ collection: 'users', timestamps: true })
+export class UserMongo extends Document {
+  @Prop({ required: true })
+  name: string;
 
-  @Prop()
-  email?: string;
+  @Prop({ required: true, unique: true })
+  email: string;
 
-  @Prop()
-  password?: string;
+  @Prop({ required: true })
+  password: string;
 
   @Prop({
     type: String,
-    enum: ['admin', 'driver'], // Restringe valores a 'admin' o 'driver'
-    default: 'admin', // Por defecto 'admin' para usuarios de administración
+    enum: ['admin', 'driver'],
+    default: 'admin',
   })
   role: 'admin' | 'driver';
 
-  @Prop()
-  createdAt?: string;
-
-  @Prop()
-  updatedAt?: string;
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: 'UserMongo',
+    required: false,
+    default: null,
+  })
+  userId?: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(UserMongo);

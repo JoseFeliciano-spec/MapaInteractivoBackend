@@ -1,7 +1,7 @@
 // Interfaz para los datos primitivos de un vehículo con ubicación integrada
 export interface PrimitiveVehicle {
   id?: string;
-  model?: string;
+  modelCar?: string;
   plate?: string; // Placa del vehículo
   fuelLevel?: number; // Nivel de combustible actual
   assignedDriver?: string; // ID del conductor asignado
@@ -14,7 +14,7 @@ export class Vehicle {
   constructor(private attributes: PrimitiveVehicle) {}
 
   static create(createVehicle: {
-    model: string;
+    modelCar: string;
     plate: string;
     fuelLevel: number;
     assignedDriver?: string;
@@ -23,7 +23,7 @@ export class Vehicle {
     timestamp?: Date;
   }): Vehicle {
     return new Vehicle({
-      model: createVehicle.model,
+      modelCar: createVehicle.modelCar,
       plate: createVehicle.plate,
       fuelLevel: createVehicle.fuelLevel,
       assignedDriver: createVehicle.assignedDriver,
@@ -35,7 +35,7 @@ export class Vehicle {
 
   static update(updateVehicle: {
     id?: string;
-    model?: string;
+    modelCar?: string;
     plate?: string;
     fuelLevel?: number;
     assignedDriver?: string;
@@ -45,7 +45,7 @@ export class Vehicle {
   }): Vehicle {
     return new Vehicle({
       id: updateVehicle.id,
-      model: updateVehicle.model,
+      modelCar: updateVehicle.modelCar,
       plate: updateVehicle.plate,
       fuelLevel: updateVehicle.fuelLevel,
       assignedDriver: updateVehicle.assignedDriver,
@@ -70,7 +70,7 @@ export class Vehicle {
   toPrimitives(): PrimitiveVehicle {
     return {
       id: this.attributes.id,
-      model: this.attributes.model,
+      modelCar: this.attributes.modelCar,
       plate: this.attributes.plate,
       fuelLevel: this.attributes.fuelLevel,
       assignedDriver: this.attributes.assignedDriver,
