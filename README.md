@@ -54,8 +54,8 @@ http://localhost:8080/docs
 ### 1. Clonar el Repositorio
 
 ```bash
-git clone https://github.com/tu-usuario/FeliInventoryBackend.git
-cd FeliInventoryBackend
+git clone https://github.com/JoseFeliciano-spec/MapaInteractivoBackend.git
+cd MapaInteractivoBackend
 ````
 
 ### 2. Instalar Dependencias
