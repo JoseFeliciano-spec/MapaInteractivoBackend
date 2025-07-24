@@ -7,7 +7,7 @@ async function bootstrap() {
 
   // Configuración de Swagger para Simon Movilidad
   const config = new DocumentBuilder()
-    .setTitle('Simon Movilidad API')
+    .setTitle('Mapa API')
     .setDescription(
       'API de monitoreo IoT para flotas vehiculares - Sistema de gestión de vehículos, conductores, ubicaciones GPS y datos en tiempo real. Incluye ingesta de señales, alertas predictivas y WebSockets.',
     )

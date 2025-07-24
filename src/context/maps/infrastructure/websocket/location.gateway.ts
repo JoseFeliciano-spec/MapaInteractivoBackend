@@ -157,10 +157,11 @@ export class LocationGateway implements OnGatewayInit, OnGatewayConnection, OnGa
       // Aplicar enmascaramiento de IDs según privacidad (requisito de la prueba técnica)
       const maskedLocations = locations.data.map((loc) => ({
         ...loc,
-        id: this.maskId(loc.id, userRole),
-        vehicleId: this.maskId(loc.vehicleId, userRole), // También enmascarar vehicleId
+        id: loc.id,
+        vehicleId: loc.vehicleId, // También enmascarar vehicleId
       }));
 
+      console.log(maskedLocations);
       // Enviar solo al cliente que solicitó (sesión específica)
       client.emit('allLocations', maskedLocations);
 
@@ -212,10 +213,5 @@ export class LocationGateway implements OnGatewayInit, OnGatewayConnection, OnGa
       this.logger.error(`Error en verificación JWT: ${error.message}`);
       throw error;
     }
-  }
-
-  private maskId(id: string, role: string): string {
-    if (role === 'admin') return id;
-    return `LOC-${id.substring(0, 4)}-****-${id.substring(id.length - 4)}`;
   }
 }
