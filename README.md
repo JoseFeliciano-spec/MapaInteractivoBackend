@@ -45,6 +45,12 @@ Sigue estos pasos para configurar y ejecutar el proyecto en tu entorno local.
 - npm o yarn  
 - Una instancia de MongoDB en ejecución (local o en la nube)  
 
+### Nota - Documentación
+Para acceder al swagger es en esta URL
+```bash
+http://localhost:8080/docs
+````
+
 ### 1. Clonar el Repositorio
 
 ```bash
